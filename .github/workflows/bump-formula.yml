@@ -1,0 +1,92 @@
+name: Bump formula
+
+on:
+  repository_dispatch:
+    types: [muxedo-release]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.1.8)"
+        required: true
+        type: string
+
+concurrency:
+  group: bump-formula-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: meta
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$INPUT_TAG"
+          else
+            TAG="$PAYLOAD_TAG"
+          fi
+          TAG="${TAG#"${TAG%%[![:space:]]*}"}"
+          TAG="${TAG%"${TAG##*[![:space:]]}"}"
+          if [ -z "$TAG" ]; then
+            echo "missing tag in client_payload or workflow input"
+            exit 1
+          fi
+          case "$TAG" in
+            v*) ;;
+            *) TAG="v${TAG}" ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "semver=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download checksums
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          curl -fsSL -o checksums.txt \
+            "https://github.com/rikvanderkemp/muxedo/releases/download/${TAG}/checksums.txt"
+
+      - name: Bump Formula/muxedo.rb
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+        run: |
+          python3 scripts/bump_formula.py \
+            --tag "$TAG" \
+            --checksums checksums.txt \
+            --formula Formula/muxedo.rb
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          SEMVER: ${{ steps.meta.outputs.semver }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="bump-muxedo-${SEMVER}"
+          git checkout -b "$branch"
+          git add Formula/muxedo.rb
+          if git diff --cached --quiet; then
+            echo "No formula changes; already at ${TAG}?"
+            exit 0
+          fi
+          git commit -m "muxedo ${SEMVER}"
+          git push origin "HEAD:refs/heads/${branch}"
+          existing="$(gh pr list --head "$branch" --json number --jq '.[0].number')"
+          if [ -n "$existing" ] && [ "$existing" != "null" ]; then
+            echo "PR already exists: #$existing"
+            exit 0
+          fi
+          gh pr create \
+            --title "bump muxedo to ${SEMVER}" \
+            --body "Automated bump for muxedo release [\`${TAG}\`](https://github.com/rikvanderkemp/muxedo/releases/tag/${TAG})."
