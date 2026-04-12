@@ -23,11 +23,11 @@ Use a clone of this repo (needs `git` history — `brew tap` clones the director
 
 ## Maintainer: release automation
 
-After each muxedo GitHub release (non-major), the [muxedo](https://github.com/rikvanderkemp/muxedo) workflow can notify this repo via `repository_dispatch` so [`.github/workflows/bump-formula.yml`](.github/workflows/bump-formula.yml) opens a PR that bumps [`Formula/muxedo.rb`](Formula/muxedo.rb) using `checksums.txt` from the release.
+After each muxedo GitHub release (non-major), the [muxedo](https://github.com/rikvanderkemp/muxedo) workflow can notify this repo via `repository_dispatch` so [`.github/workflows/bump-formula.yml`](.github/workflows/bump-formula.yml) commits [`Formula/muxedo.rb`](Formula/muxedo.rb) to **`main`** using `checksums.txt` from the release (no PR).
 
 **In the muxedo repo (caller):** add Actions secret `HOMEBREW_MUXEDO_DISPATCH_TOKEN` — a PAT that can trigger dispatch on **`rikvanderkemp/homebrew-muxedo`** (classic: `repo` on that repo; fine-grained: **Contents: Read and write** on that repo only). If unset, the dispatch step is skipped (release still succeeds).
 
-**In this repo:** no extra secrets — the bump workflow uses `GITHUB_TOKEN` to push a branch and open a PR.
+**In this repo:** no extra secrets — the bump workflow uses `GITHUB_TOKEN` with **`contents: write`** to push to `main`. If **branch protection** blocks direct pushes, either allow GitHub Actions to bypass for this workflow or use a PAT with bypass (repo settings).
 
 **Manual test:** Actions → **Bump formula** → *Run workflow* → enter tag `v0.1.8` (must match an existing muxedo release with assets). Or send dispatch:
 

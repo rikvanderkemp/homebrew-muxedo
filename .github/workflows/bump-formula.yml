@@ -16,13 +16,15 @@ concurrency:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   bump:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
 
       - name: Resolve tag
         id: meta
@@ -49,6 +51,9 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "semver=${TAG#v}" >> "$GITHUB_OUTPUT"
 
+      - name: Sync main
+        run: git pull origin main --rebase
+
       - name: Download checksums
         env:
           TAG: ${{ steps.meta.outputs.tag }}
@@ -65,28 +70,18 @@ jobs:
             --checksums checksums.txt \
             --formula Formula/muxedo.rb
 
-      - name: Open pull request
+      - name: Commit and push to main
         env:
-          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.meta.outputs.tag }}
           SEMVER: ${{ steps.meta.outputs.semver }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          branch="bump-muxedo-${SEMVER}"
-          git checkout -b "$branch"
           git add Formula/muxedo.rb
           if git diff --cached --quiet; then
             echo "No formula changes; already at ${TAG}?"
             exit 0
           fi
           git commit -m "muxedo ${SEMVER}"
-          git push origin "HEAD:refs/heads/${branch}"
-          existing="$(gh pr list --head "$branch" --json number --jq '.[0].number')"
-          if [ -n "$existing" ] && [ "$existing" != "null" ]; then
-            echo "PR already exists: #$existing"
-            exit 0
-          fi
-          gh pr create \
-            --title "bump muxedo to ${SEMVER}" \
-            --body "Automated bump for muxedo release [\`${TAG}\`](https://github.com/rikvanderkemp/muxedo/releases/tag/${TAG})."
+          git pull origin main --rebase
+          git push origin main
