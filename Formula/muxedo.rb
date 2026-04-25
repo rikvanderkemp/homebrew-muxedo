@@ -3,26 +3,26 @@
 class Muxedo < Formula
   desc "Terminal multiplexer TUI with live auto-grid layout from TOML profiles"
   homepage "https://github.com/rikvanderkemp/muxedo"
-  version "0.1.17"
+  version "0.1.18"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
       url "https://github.com/rikvanderkemp/muxedo/releases/download/v#{version}/muxedo_#{version}_darwin_arm64.tar.gz"
-      sha256 "e64886a8ef6018e9f705b1aeaeb95c78cba410e22408a43a8641bc0c189834e5"
+      sha256 "978dc4f8b18d56b0afa6c4fcc65dc74a770c041518d284a94f75edd513635333"
     else
       url "https://github.com/rikvanderkemp/muxedo/releases/download/v#{version}/muxedo_#{version}_darwin_amd64.tar.gz"
-      sha256 "cc0e2f83b2fdcf3e4f402f51fe4929563fc67156e182cc171551c7c0dfda4319"
+      sha256 "6cda5ccb5df779f9585a34ca3fcc43de957acd9a06e5d089e942a13c4105f3b7"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
       url "https://github.com/rikvanderkemp/muxedo/releases/download/v#{version}/muxedo_#{version}_linux_arm64.tar.gz"
-      sha256 "4caa0a88bb6a68c40f6d7ed1c23cdf25f70c089498170d891af3e9de508ec2b5"
+      sha256 "481f483eda280356cca55f092a174112c8346ba41a477b0be1657650a6853d48"
     else
       url "https://github.com/rikvanderkemp/muxedo/releases/download/v#{version}/muxedo_#{version}_linux_amd64.tar.gz"
-      sha256 "e276344b2f61071a41c2ac802b438cb124af34cbb9fae19ba191d5ced9ab7f1d"
+      sha256 "1ab3fa1b35aa19f74efbb98915d3786e3939335f53cfc3066c8de1fcaee94597"
     end
   end
 
